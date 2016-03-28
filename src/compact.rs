@@ -5,7 +5,7 @@ const HEX : [u8 ; 16] = [
     b'A', b'B', b'C', b'D', b'E', b'F'
 ];
 
-fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
+pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
     let mut input_pos = 0;
 
     loop {
@@ -138,6 +138,8 @@ pub fn compact(input_json: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test::black_box;
+    use test::Bencher;
 
     #[test]
     fn compact_json_object() {
@@ -186,7 +188,21 @@ mod tests {
         assert_eq!("[\"\u{10FFFF}\"]", compact("[\"\\uDBFF\\uDFFF\"]"));
     }
 
-
-    
-
+    #[bench]
+    fn benchmark_compact(b : &mut Bencher) {
+        let test_string = black_box(r#"{
+            "A longish bit of JSON": true,
+            "containing": {
+                "whitespace": " ",
+                "unicode escapes ": "\uFFFF\u0FFF\u007F\uDBFF\uDFFF",
+                "other sorts of esacpes": "\b\t\n\f\r\"\\\/",
+                "unicode escapes for the other sorts of escapes":
+                    "\u0008\u0009\u000A\u000C\u000D\u005C\u0022",
+                "numbers": [0, 1, 1e4, 1.0, -1.0e7 ],
+                "and more": [ true, false, null ]
+            }
+        }"#.as_bytes());
+        let mut output : Vec<u8> = Vec::with_capacity(test_string.len());
+        b.iter(|| { output.clear(); compact_vector(test_string, &mut output) });
+    }
 }
