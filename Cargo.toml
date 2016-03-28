@@ -1,0 +1,6 @@
+[package]
+name = "indolenjson"
+version = "0.1.0"
+authors = ["Mark Haines <mjark@negativecurvature.net>"]
+
+[dependencies]
