@@ -51,6 +51,7 @@ mod tests {
     #[bench]
     fn read_hexdigit(b: &mut Bencher) {
         let x = black_box("0123".as_bytes());
+        b.bytes = x.len() as u64;
         b.iter(|| { read_hexdigit_4(x, 0) });
     }
 }

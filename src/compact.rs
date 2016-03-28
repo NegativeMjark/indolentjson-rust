@@ -6,50 +6,46 @@ const HEX : [u8 ; 16] = [
 ];
 
 pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
-    let mut input_pos = 0;
+    let mut iter = input.iter();
 
     loop {
-        let input_char = match input.get(input_pos) {
+        let input_char = match iter.next() {
             None => return true,
             Some(value) => *value,
         };
-        input_pos += 1;
         if input_char <= b' ' { // Whitespace '\n', '\r', '\t', ' '
             continue;
         }
         output.push(input_char);
         if input_char == b'\"' { // Double Quote '\"'
             loop {
-                let input_char = match input.get(input_pos) {
+                let input_char = match iter.next() {
                     None => return false,
                     Some(value) => *value,
                 };
-                input_pos += 1;
                 if input_char == b'\\' { // Back Slash '\\'
-                    let input_char = match input.get(input_pos) {
+                    let input_char = match iter.next() {
                         None => return false,
                         Some(value) => *value,
                     };
-                    input_pos += 1;
                     if input_char == b'u' { // Unicode escape "u"
-                        let h0 = match input.get(input_pos) {
+                        let h0 = match iter.next() {
                             None => return false,
                             Some(value) => *value
                         };
-                        let h1 = match input.get(input_pos + 1) {
+                        let h1 = match iter.next() {
                             None => return false,
                             Some(value) => *value
                         };
-                        let h2 = match input.get(input_pos + 2) {
+                        let h2 = match iter.next() {
                             None => return false,
                             Some(value) => *value
                         };
-                        let h3 = match input.get(input_pos + 3) {
+                        let h3 = match iter.next() {
                             None => return false,
                             Some(value) => *value
                         };
                         let escaped = read_hexdigits(h0, h1, h2, h3);
-                        input_pos += 4;
                         if escaped < 0x20 {
                             output.push(b'\\');
                             match escaped {
@@ -81,24 +77,31 @@ pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
                                 output.push((escaped as u8 & 0x3F) | 0x80);
                             } else {
                                 // surrogate pair
-                                let h0 = match input.get(input_pos + 2) {
+                                match iter.next() {
+                                    None => return false,
+                                    _ => {;}
+                                }
+                                match iter.next() {
+                                    None => return false,
+                                    _ => {;}
+                                }
+                                let h0 = match iter.next() {
                                     None => return false,
                                     Some(value) => *value
                                 };
-                                let h1 = match input.get(input_pos + 3) {
+                                let h1 = match iter.next() {
                                     None => return false,
                                     Some(value) => *value
                                 };
-                                let h2 = match input.get(input_pos + 4) {
+                                let h2 = match iter.next() {
                                     None => return false,
                                     Some(value) => *value
                                 };
-                                let h3 = match input.get(input_pos + 5) {
+                                let h3 = match iter.next() {
                                     None => return false,
                                     Some(value) => *value
                                 };
                                 let surrogate = read_hexdigits(h0, h1, h2, h3);
-                                input_pos += 6;
                                 let codepoint = 0x10000 + (
                                     ((escaped & 0x3FF) << 10) | (surrogate & 0x3FF)
                                 );
@@ -203,6 +206,7 @@ mod tests {
             }
         }"#.as_bytes());
         let mut output : Vec<u8> = Vec::with_capacity(test_string.len());
+        b.bytes = test_string.len() as u64;
         b.iter(|| { output.clear(); compact_vector(test_string, &mut output) });
     }
 }
