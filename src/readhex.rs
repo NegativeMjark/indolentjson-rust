@@ -1,9 +1,9 @@
-pub fn read_hexdigit_4(input: &[u8], pos: usize) -> u32 {
+pub fn read_hexdigits(h0: u8, h1: u8, h2: u8, h3: u8) -> u32 {
     // read the 4 hex digits
-    let mut hex = ((input[pos] as u32) << 24)
-            | ((input[pos + 1] as u32) << 16)
-            | ((input[pos + 2] as u32) << 8)
-            | (input[pos + 3] as u32);
+    let mut hex = ((h0 as u32) << 24)
+            | ((h1 as u32) << 16)
+            | ((h2 as u32) << 8)
+            | (h3 as u32);
     // subtract '0'
     hex -= 0x30303030;
     // strip the higher bits, maps 'a' => 'A'
@@ -19,11 +19,18 @@ pub fn read_hexdigit_4(input: &[u8], pos: usize) -> u32 {
     return hex & 0xFFFF;
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use test::Bencher;
     use test::black_box;
+
+    pub fn read_hexdigit_4(input: &[u8], pos: usize) -> u32 {
+        return read_hexdigits(
+            input[pos], input[pos + 1], input[pos + 2], input[pos + 3]
+        );
+    }
 
     #[test]
     fn readhex_uppercase() {

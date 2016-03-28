@@ -1,42 +1,54 @@
 use readhex::*;
 
 const HEX : [u8 ; 16] = [
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-    0x41, 0x42, 0x43, 0x44, 0x45, 0x46
+    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9',
+    b'A', b'B', b'C', b'D', b'E', b'F'
 ];
 
 fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
     let mut input_pos = 0;
-    let input_end = input_pos + input.len();
 
     loop {
-        if input_pos == input_end {
-            return true;
-        }
-        let input_char = input[input_pos];
+        let input_char = match input.get(input_pos) {
+            None => return true,
+            Some(value) => *value,
+        };
         input_pos += 1;
-        if input_char <= b' ' { // Whitespace '\n', '\t', ' '
+        if input_char <= b' ' { // Whitespace '\n', '\r', '\t', ' '
             continue;
         }
         output.push(input_char);
         if input_char == b'\"' { // Double Quote '\"'
             loop {
-                if input_pos == input_end {
-                    return false;
-                }
-                let input_char = input[input_pos];
+                let input_char = match input.get(input_pos) {
+                    None => return false,
+                    Some(value) => *value,
+                };
                 input_pos += 1;
                 if input_char == b'\\' { // Back Slash '\\'
-                    if input_pos == input_end {
-                        return false;
-                    }
-                    let input_char = input[input_pos];
+                    let input_char = match input.get(input_pos) {
+                        None => return false,
+                        Some(value) => *value,
+                    };
                     input_pos += 1;
                     if input_char == b'u' { // Unicode escape "u"
-                        if input_end - input_pos < 4 {
-                            return false;
-                        }
-                        let escaped = read_hexdigit_4(input, input_pos);
+                        let h0 = match input.get(input_pos) {
+                            None => return false,
+                            Some(value) => *value
+                        };
+                        let h1 = match input.get(input_pos + 1) {
+                            None => return false,
+                            Some(value) => *value
+                        };
+                        let h2 = match input.get(input_pos + 2) {
+                            None => return false,
+                            Some(value) => *value
+                        };
+                        let h3 = match input.get(input_pos + 3) {
+                            None => return false,
+                            Some(value) => *value
+                        };
+                        let escaped = read_hexdigits(h0, h1, h2, h3);
                         input_pos += 4;
                         if escaped < 0x20 {
                             output.push(b'\\');
@@ -69,10 +81,23 @@ fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
                                 output.push((escaped as u8 & 0x3F) | 0x80);
                             } else {
                                 // surrogate pair
-                                if input_end - input_pos < 6 {
-                                    return false;
-                                }
-                                let surrogate = read_hexdigit_4(input, input_pos + 2);
+                                let h0 = match input.get(input_pos + 2) {
+                                    None => return false,
+                                    Some(value) => *value
+                                };
+                                let h1 = match input.get(input_pos + 3) {
+                                    None => return false,
+                                    Some(value) => *value
+                                };
+                                let h2 = match input.get(input_pos + 4) {
+                                    None => return false,
+                                    Some(value) => *value
+                                };
+                                let h3 = match input.get(input_pos + 5) {
+                                    None => return false,
+                                    Some(value) => *value
+                                };
+                                let surrogate = read_hexdigits(h0, h1, h2, h3);
                                 input_pos += 6;
                                 let codepoint = 0x10000 + (
                                     ((escaped & 0x3FF) << 10) | (surrogate & 0x3FF)
