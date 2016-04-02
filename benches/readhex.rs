@@ -1,9 +1,9 @@
 #![feature(test)]
 
-extern crate indolenjson;
+extern crate indolentjson;
 extern crate test;
 
-use indolenjson::readhex::*;
+use indolentjson::readhex::*;
 use test::{black_box, Bencher};
 
 #[bench]
