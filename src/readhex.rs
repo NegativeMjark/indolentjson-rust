@@ -23,8 +23,6 @@ pub fn read_hexdigits(h0: u8, h1: u8, h2: u8, h3: u8) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test::Bencher;
-    use test::black_box;
 
     pub fn read_hexdigit_4(input: &[u8], pos: usize) -> u32 {
         return read_hexdigits(
@@ -34,24 +32,17 @@ mod tests {
 
     #[test]
     fn readhex_uppercase() {
-        assert_eq!(0x0123, read_hexdigit_4("0123".as_bytes(), 0));
-        assert_eq!(0x4567, read_hexdigit_4("4567".as_bytes(), 0));
-        assert_eq!(0x89AB, read_hexdigit_4("89AB".as_bytes(), 0));
-        assert_eq!(0xCDEF, read_hexdigit_4("CDEF".as_bytes(), 0));
+        assert_eq!(0x0123, read_hexdigit_4(b"0123", 0));
+        assert_eq!(0x4567, read_hexdigit_4(b"4567", 0));
+        assert_eq!(0x89AB, read_hexdigit_4(b"89AB", 0));
+        assert_eq!(0xCDEF, read_hexdigit_4(b"CDEF", 0));
     }
 
     #[test]
     fn readhex_lowercase() {
-        assert_eq!(0x0123, read_hexdigit_4("0123".as_bytes(), 0));
-        assert_eq!(0x4567, read_hexdigit_4("4567".as_bytes(), 0));
-        assert_eq!(0x89AB, read_hexdigit_4("89ab".as_bytes(), 0));
-        assert_eq!(0xCDEF, read_hexdigit_4("cdef".as_bytes(), 0));
-    }
-
-    #[bench]
-    fn read_hexdigit(b: &mut Bencher) {
-        let x = black_box("0123".as_bytes());
-        b.bytes = x.len() as u64;
-        b.iter(|| { read_hexdigit_4(x, 0) });
+        assert_eq!(0x0123, read_hexdigit_4(b"0123", 0));
+        assert_eq!(0x4567, read_hexdigit_4(b"4567", 0));
+        assert_eq!(0x89AB, read_hexdigit_4(b"89ab", 0));
+        assert_eq!(0xCDEF, read_hexdigit_4(b"cdef", 0));
     }
 }
