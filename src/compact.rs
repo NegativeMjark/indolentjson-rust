@@ -16,7 +16,16 @@ use readhex::*;
 
 const HEX : [u8 ; 16] = *b"0123456789ABCDEF";
 
-pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
+
+pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> Result<(),()> {
+    if compact_vector_(input, output) {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
+fn compact_vector_(input: &[u8], output: &mut Vec<u8>) -> bool {
     let mut iter = input.iter();
 
     loop {
@@ -142,11 +151,8 @@ pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> bool {
 
 pub fn compact(input_json: &str) -> String {
     let mut output : Vec<u8> = Vec::with_capacity(input_json.as_bytes().len());
-    if compact_vector(input_json.as_bytes(), &mut output) {
-        return String::from_utf8(output).unwrap();
-    } else {
-        return "FAIL".to_string();
-    }
+    compact_vector(input_json.as_bytes(), &mut output).unwrap();
+    return String::from_utf8(output).unwrap();
 }
 
 #[cfg(test)]
