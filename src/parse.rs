@@ -141,13 +141,13 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     if input_char == b',' {
                         output.push(Node {
                             children: 0,
-                            length_in_bytes: (start - iter.len()) as u32
+                            length_in_bytes: (start - iter.len() - 1) as u32
                         });
                         continue 'value_start;
-                    } else if (input_char | 0xDF) == b']' {
+                    } else if (input_char & 0xDF) == b']' {
                         output.push(Node {
                             children: 0,
-                            length_in_bytes: (start - iter.len()) as u32
+                            length_in_bytes: (start - iter.len() - 1) as u32
                         });
                         continue 'node_end;
                     }
@@ -210,5 +210,14 @@ mod test {
         ], result);
     }
 
-
+    #[test]
+    fn parse_scalars() {
+        let result = parse(br#"[false,null,true]"#);
+        assert_eq!(vec![
+            Node {children: 3, length_in_bytes: 17},
+            Node {children: 0, length_in_bytes: 5},
+            Node {children: 0, length_in_bytes: 4},
+            Node {children: 0, length_in_bytes: 4},
+        ], result);
+    }
 }
