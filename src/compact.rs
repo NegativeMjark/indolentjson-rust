@@ -17,15 +17,20 @@ use readhex::*;
 const HEX : [u8 ; 16] = *b"0123456789ABCDEF";
 
 
-pub fn compact_vector(input: &[u8], output: &mut Vec<u8>) -> Result<(),()> {
-    if compact_vector_(input, output) {
+/**
+ * Reduce the JSON encoded as UTF-8 to its shortest form by removing whitespace
+ * and removing unnecessary string escapes. Succeeds if it writes the new JSON
+ * to the output vector. Fails if the input contained an unterminated string.
+ */
+pub fn compact(input: &[u8], output: &mut Vec<u8>) -> Result<(),()> {
+    if compact_(input, output) {
         Ok(())
     } else {
         Err(())
     }
 }
 
-fn compact_vector_(input: &[u8], output: &mut Vec<u8>) -> bool {
+fn compact_(input: &[u8], output: &mut Vec<u8>) -> bool {
     let mut iter = input.iter();
 
     loop {
@@ -151,15 +156,15 @@ fn compact_unicode_escape<'a, T: Iterator<Item=&'a u8>>(iter: &mut T, output: &m
     return true;
 }
 
-pub fn compact(input_json: &str) -> String {
-    let mut output : Vec<u8> = Vec::with_capacity(input_json.as_bytes().len());
-    compact_vector(input_json.as_bytes(), &mut output).unwrap();
-    return String::from_utf8(output).unwrap();
-}
+
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    fn compact(input_json: &str) -> String {
+        let mut output : Vec<u8> = Vec::with_capacity(input_json.as_bytes().len());
+        super::compact(input_json.as_bytes(), &mut output).unwrap();
+        return String::from_utf8(output).unwrap();
+    }
 
     #[test]
     fn compact_json_object() {

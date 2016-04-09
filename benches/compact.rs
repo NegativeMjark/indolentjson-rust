@@ -22,5 +22,5 @@ fn benchmark_compact(b : &mut Bencher) {
     }"#.as_bytes());
     let mut output : Vec<u8> = Vec::with_capacity(test_string.len());
     b.bytes = test_string.len() as u64;
-    b.iter(|| { output.clear(); compact_vector(test_string, &mut output) });
+    b.iter(|| { output.clear(); compact(test_string, &mut output) });
 }
