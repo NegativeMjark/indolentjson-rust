@@ -63,7 +63,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
     if iter.len() == 2 {
         // If the input is two bytes long then it is an empty object
         // or an empty array.
-        output.push(Node {children: 0, length_in_bytes: 2});
+        push_node(output, 2);
         return true;
     }
     'node_end: loop {
@@ -124,24 +124,11 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     return false;
                 }
                 // Loop through the characters until we find a closing b'"'.
-                loop {
-                    let input_char = match iter.next() {
-                        None => return false,
-                        Some(value) => *value
-                    };
-                    if input_char == b'"' {
-                        break;
-                    }
-                    if input_char == b'\\' {
-                        if iter.next() == None {
-                            return false;
-                        }
-                    }
+                if !parse_string(&mut iter) {
+                    return false;
                 }
                 // Add a node with the string.
-                output.push(Node {
-                    children: 0, length_in_bytes: (start - iter.len()) as u32
-                });
+                push_node(output, start - iter.len());
                 // Skip over the b':'.
                 if iter.next() == None {
                     return false;
@@ -162,7 +149,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                 };
                 if peek_char == b'}' {
                     // The object was empty, output a 2 byte node.
-                    output.push(Node {children: 0, length_in_bytes: 2});
+                    push_node(output, 2);
                     // Consume the b'}' character.
                     let _ = iter.next();
                 } else {
@@ -176,9 +163,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     // parsing an object.
                     let index = output.len() as u32;
                     stack.push((index << 1) | 1);
-                    output.push(Node {
-                        children: 0, length_in_bytes: start as u32,
-                    });
+                    push_node(output, start);
                     parsing_object = true;
                     // Jump to parsing the start of a value.
                     continue 'value_start;
@@ -192,7 +177,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                 };
                 if peek_char == b']' {
                     // The array is empty, output a 2 byte node.
-                    output.push(Node {children: 0, length_in_bytes: 2});
+                    push_node(output, 2);
                     // Consume the ']' character.
                     let _ = iter.next();
                 } else {
@@ -206,33 +191,17 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     // vector to the stack. Leave the low bit unset to indicate
                     // we are parsing an array.
                     stack.push(index << 1);
-                    output.push(Node {
-                        children: 0, length_in_bytes: start as u32,
-                    });
+                    push_node(output, start);
                     parsing_object = false;
                     // Jump to parsing the start of a value.
                     continue 'value_start;
                 }
             } else if input_char == b'"' {
                 // We are parsing a string. Loop until we see a closing b'"'.
-                loop {
-                    let input_char = match iter.next() {
-                        None => return false,
-                        Some(value) => *value
-                    };
-                    if input_char == b'"' {
-                        break;
-                    }
-                    if input_char == b'\\' {
-                        if iter.next() == None {
-                            return false;
-                        }
-                    }
+                if !parse_string(&mut iter) {
+                    return false;
                 }
-                output.push(Node {
-                    children: 0,
-                    length_in_bytes: (start - iter.len()) as u32
-                });
+                push_node(output, start - iter.len());
             } else {
                 // We are parsing a number or one of true, false or null.
                 // Loop until we see a b',', a b'}', or a b']'.
@@ -242,17 +211,11 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                         Some(value) => *value
                     };
                     if input_char == b',' {
-                        output.push(Node {
-                            children: 0,
-                            length_in_bytes: (start - iter.len() - 1) as u32
-                        });
+                        push_node(output, start - iter.len() - 1);
                         // Jump to parsing the start of a value.
                         continue 'value_start;
                     } else if (input_char & 0xDF) == b']' {
-                        output.push(Node {
-                            children: 0,
-                            length_in_bytes: (start - iter.len() - 1) as u32
-                        });
+                        push_node(output, start - iter.len() - 1);
                         // Jump to parsing the end of a node.
                         continue 'node_end;
                     }
@@ -277,6 +240,33 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
         }
     }
 }
+
+
+fn parse_string<'a, T: Iterator<Item=&'a u8>>(iter: &mut T) -> bool {
+    loop {
+        let input_char = match iter.next() {
+            None => return false,
+            Some(value) => *value
+        };
+        if input_char == b'"' {
+            break;
+        }
+        if input_char == b'\\' {
+            if iter.next() == None {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn push_node(output: &mut Vec<Node>, len : usize) {
+    output.push( Node {
+        children: 0,
+        length_in_bytes: len as u32,
+    });
+}
+
 
 #[cfg(test)]
 mod test {
