@@ -16,12 +16,9 @@ use readhex::*;
 
 const HEX : [u8 ; 16] = *b"0123456789ABCDEF";
 
-
-/**
- * Reduce the JSON encoded as UTF-8 to its shortest form by removing whitespace
- * and removing unnecessary string escapes. Succeeds if it writes the new JSON
- * to the output vector. Fails if the input contained an unterminated string.
- */
+/// Reduce the JSON encoded as UTF-8 to its shortest form by removing whitespace
+/// and removing unnecessary string escapes. Succeeds if it writes the new JSON
+/// to the output vector. Fails if the input contained an unterminated string.
 pub fn compact(input: &[u8], output: &mut Vec<u8>) -> Result<(),()> {
     if compact_(input, output) {
         Ok(())

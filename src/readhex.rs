@@ -13,12 +13,11 @@
  * limitations under the License.
  */
 
-/**
- * Decode 4 hexadecimal digits into an integer in the range 0 to 0xFFFF
- * inclusive. Assumes that the digits passed are in the range [0-9A-Fa-f].
- * If the digits aren't in that range then it returns an undefined value in
- * the range 0 to 0xFFFF.
- */
+
+/// Decode 4 hexadecimal digits into an integer in the range 0 to 0xFFFF
+/// inclusive. Assumes that the digits passed are in the range [0-9A-Fa-f].
+/// If the digits aren't in that range then it returns an undefined value in
+/// the range 0 to 0xFFFF.
 pub fn read_hexdigits(h0: u8, h1: u8, h2: u8, h3: u8) -> u32 {
     // read the 4 hex digits
     let mut hex = ((h0 as u32) << 24)
