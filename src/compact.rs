@@ -150,7 +150,7 @@ fn compact_unicode_escape<'a, T: Iterator<Item=&'a u8>>(iter: &mut T, output: &m
         output.push(((codepoint >> 6) & 0x3F) as u8 | 0x80);
         output.push((codepoint as u8 & 0x3F) | 0x80);
     }
-    return true;
+    true
 }
 
 

@@ -17,12 +17,12 @@
 /// Parsed JSON is stored as a byte array of compact JSON and an array of nodes.
 /// Each node represents a JSON object, array or value.
 ///
-/// The ``children`` field is the total number of children under this node.
+/// The `children` field is the total number of children under this node.
 /// The child nodes come directly after the parent node in the array.
 /// This means that the next sibling of a node can be found at an offset
-/// of ``children + 1`` into the array.
+/// of `children + 1` into the array.
 ///
-/// The ``length_in_bytes`` gives the length of the value in bytes.
+/// The `length_in_bytes` gives the length of the value in bytes.
 /// This allows the offset of a node to be computed as follows.
 /// The root node is at offset 0.
 /// The first child node starts at its parent offset + 1.
@@ -30,17 +30,17 @@
 ///
 /// JSON scalars never have children and are identified by their first byte.
 ///
-///  * JSON true values start with ``b't' == 0x74``.
-///  * JSON false values start with ``b'f' == 0x66``.
-///  * JSON null values start with ``b'n' == 0x6E``.
-///  * JSON string values start with ``b'"' == 0x22``.
-///  * JSON number values start with either ``b'-' == 0x2B``
-///    or one of ``b"0123456789"` == [0x30..0x39]``.
+///  * JSON true values start with `b't' == 0x74`.
+///  * JSON false values start with `b'f' == 0x66`.
+///  * JSON null values start with `b'n' == 0x6E`.
+///  * JSON string values start with `b'"' == 0x22`.
+///  * JSON number values start with either `b'-' == 0x2B`
+///    or one of `b"0123456789" == [0x30..0x39]`.
 ///
-/// JSON arrays start with ``b'[' == 0x5B``. The direct children of the node
+/// JSON arrays start with `b'[' == 0x5B`. The direct children of the node
 ///      are the elements of the array.
 ///
-/// JSON objects start with ``b'{' == 0x7B``. The direct children of the node
+/// JSON objects start with `b'{' == 0x7B`. The direct children of the node
 /// alternate between JSON string keys and their values.
 #[derive(PartialEq, Debug)]
 pub struct Node {
@@ -251,13 +251,11 @@ fn parse_string<'a, T: Iterator<Item=&'a u8>>(iter: &mut T) -> bool {
         if input_char == b'"' {
             break;
         }
-        if input_char == b'\\' {
-            if iter.next() == None {
-                return false;
-            }
+        if input_char == b'\\' && iter.next() == None {
+            return false;
         }
     }
-    return true;
+    true
 }
 
 fn push_node(output: &mut Vec<Node>, len : usize) {

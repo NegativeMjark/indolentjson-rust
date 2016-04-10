@@ -36,7 +36,7 @@ pub fn read_hexdigits(h0: u8, h1: u8, h2: u8, h3: u8) -> u32 {
     hex |= hex >> 4;
     hex &= 0xFF00FF;
     hex |= hex >> 8;
-    return hex & 0xFFFF;
+    hex & 0xFFFF
 }
 
 
