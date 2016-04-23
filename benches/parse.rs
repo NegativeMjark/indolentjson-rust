@@ -26,7 +26,7 @@ fn benchmark_parse_compact(b : &mut Bencher) {
     let test_string = black_box(TEST_STRING.as_bytes());
     let mut compacted : Vec<u8> = Vec::new();
     let mut parsed : Vec<Node> = Vec::new();
-    let mut parse_stack : Vec<u32> = Vec::new();
+    let mut parse_stack : Vec<Stack> = Vec::new();
     b.bytes = test_string.len() as u64;
     b.iter(|| {
         compacted.clear();
@@ -42,7 +42,7 @@ fn benchmark_parse(b : &mut Bencher) {
     let test_string = black_box(TEST_STRING.as_bytes());
     let mut compacted : Vec<u8> = Vec::new();
     let mut parsed : Vec<Node> = Vec::new();
-    let mut parse_stack : Vec<u32> = Vec::new();
+    let mut parse_stack : Vec<Stack> = Vec::new();
     compact(test_string, &mut compacted).unwrap();
     b.bytes = compacted.len() as u64;
     b.iter(|| {

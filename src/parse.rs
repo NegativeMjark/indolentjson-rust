@@ -48,8 +48,15 @@ pub struct Node {
     length_in_bytes: u32,
 }
 
+/// Used in the internal state of the parser. This is exposed so that users of
+/// the library can reuse the same stack vector across multiple runs of the 
+/// parser.
+pub struct Stack {
+    offset: u32,
+    parsing_object: bool,
+}
 
-pub fn parse(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> Result<(),()> {
+pub fn parse(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<Stack>) -> Result<(),()> {
     if parse_(input, output, stack) {
         Ok(())
     } else {
@@ -57,7 +64,7 @@ pub fn parse(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> Resu
     }
 }
 
-fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
+fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<Stack>) -> bool {
     let mut iter = input.iter().peekable();
     let mut parsing_object = false;
     if iter.len() == 2 {
@@ -76,7 +83,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
             Some(offset_and_state) => {
                 // Grab a copy of the length to appease the borrow checker.
                 let output_len = output.len() as u32;
-                let offset = offset_and_state >> 1;
+                let offset = offset_and_state.offset;
                 // The stack held the where the node was in the output array.
                 // Grab a mutable copy of the node so we can fill it out with
                 // the number of children and update the length of the node.
@@ -100,7 +107,7 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                 };
                 // Whether we were parsing an object or and array is stored in
                 // the first bit of the stack entry.
-                parsing_object = (prev_offset_and_state & 1) == 1;
+                parsing_object = prev_offset_and_state.parsing_object;
                 // We've finished parsing a node. There's either a comma b','
                 // followed by more stuff in the outer node. or the outer node
                 // is ending with a b']' or a b'}'.
@@ -159,10 +166,9 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     // will be filled out with the correct info when the node
                     // ends.
                     // Add the index of the placeholder node in the output
-                    // vector to the stack. Set the low bit to indicate we are
-                    // parsing an object.
+                    // vector to the stack.
                     let index = output.len() as u32;
-                    stack.push((index << 1) | 1);
+                    stack.push(Stack{offset: index, parsing_object: true});
                     push_node(output, start);
                     parsing_object = true;
                     // Jump to parsing the start of a value.
@@ -188,9 +194,8 @@ fn parse_(input: &[u8], output: &mut Vec<Node>, stack: &mut Vec<u32>) -> bool {
                     // will be filled out with the correct info when the node
                     // ends.
                     // Add the index of the placeholder node in the output
-                    // vector to the stack. Leave the low bit unset to indicate
-                    // we are parsing an array.
-                    stack.push(index << 1);
+                    // vector to the stack.
+                    stack.push(Stack{offset: index, parsing_object: false});
                     push_node(output, start);
                     parsing_object = false;
                     // Jump to parsing the start of a value.
@@ -269,10 +274,11 @@ fn push_node(output: &mut Vec<Node>, len : usize) {
 #[cfg(test)]
 mod test {
     use super::Node;
+    use super::Stack;
 
     fn parse(input: &[u8]) -> Vec<Node> {
         let mut output : Vec<Node> = Vec::new();
-        let mut stack : Vec<u32> = Vec::new();
+        let mut stack : Vec<Stack> = Vec::new();
         super::parse(input, &mut output, &mut stack).unwrap();
         return output;
     }
