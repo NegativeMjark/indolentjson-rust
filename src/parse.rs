@@ -44,12 +44,12 @@
 /// alternate between JSON string keys and their values.
 #[derive(PartialEq, Debug)]
 pub struct Node {
-    children: u32,
-    length_in_bytes: u32,
+    pub children: u32,
+    pub length_in_bytes: u32,
 }
 
 /// Used in the internal state of the parser. This is exposed so that users of
-/// the library can reuse the same stack vector across multiple runs of the 
+/// the library can reuse the same stack vector across multiple runs of the
 /// parser.
 pub struct Stack {
     offset: u32,
