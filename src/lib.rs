@@ -16,3 +16,4 @@ pub mod compact;
 pub mod readhex;
 pub mod parse;
 pub mod validate;
+pub mod strings;
