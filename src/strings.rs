@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 
-pub fn unescape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
+pub fn unescape_bytes<'a>(input: &'a [u8]) -> Option<Cow<'a, [u8]>> {
     let mut output = Cow::Borrowed(input);
     let mut iter = input.iter().enumerate();
     loop {
@@ -13,7 +13,7 @@ pub fn unescape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
             let vec = into_buf(idx, &mut output);
 
             let escaped = match iter.next() {
-                None => panic!("Invalid escape"),
+                None => return None,
                 Some((_, value)) => *value,
             };
             match escaped {
@@ -26,14 +26,14 @@ pub fn unescape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
                 b'u' => {
                     // Skip the first two digits since they are zero.
                     if iter.next() == None || iter.next() == None {
-                        panic!("Invalid escape")
+                        return None
                     }
                     let h2 = match iter.next() {
-                        None => panic!("Invalid escape"),
+                        None => return None,
                         Some((_, value)) => *value,
                     };
                     let h3 = match iter.next() {
-                        None => panic!("Invalid escape"),
+                        None => return None,
                         Some((_, value)) => *value,
                     };
                     let value = ((h2 - b'0') << 4) + ((h3 - b'0') & 0x1F);
@@ -43,12 +43,12 @@ pub fn unescape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
                         vec.push(value);
                     }
                 },
-                _ => panic!("Invalid escape"),
+                _ => return None,
             }
         }
     }
 
-    output
+    Some(output)
 }
 
 const HEX : [u8 ; 16] = *b"0123456789ABCDEF";
@@ -130,25 +130,25 @@ mod tests {
             &b"\x00\x01\x02\x03\x04\x05\x06\x07"[..],
             &unescape_bytes(
                 br#"\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007"#,
-            )[..]
+            ).unwrap()[..]
         );
         assert_eq!(
             &b"\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"[..],
             &unescape_bytes(
                 br#"\b\t\n\u000B\f\r\u000E\u000F"#,
-            )[..]
+            ).unwrap()[..]
         );
         assert_eq!(
             &b"\x10\x11\x12\x13\x14\x15\x16\x17"[..],
             &unescape_bytes(
                 br#"\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017"#,
-            )[..]
+            ).unwrap()[..]
         );
         assert_eq!(
             &b"\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"[..],
             &unescape_bytes(
                 br#"\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F"#,
-            )[..]
+            ).unwrap()[..]
         );
     }
 
@@ -162,7 +162,17 @@ mod tests {
     #[test]
     fn unescape_slash_and_quote() {
         assert_eq!(
-            b"\"\\", &unescape_bytes(br#"\"\\"#)[..]
+            b"\"\\", &unescape_bytes(br#"\"\\"#).unwrap()[..]
         );
+    }
+
+    #[test]
+    fn invalid_escape() {
+        assert!(unescape_bytes(br#"\p"#).is_none());
+        assert!(unescape_bytes(br#"\"#).is_none());
+        assert!(unescape_bytes(br#"\u"#).is_none());
+        assert!(unescape_bytes(br#"\u0"#).is_none());
+        assert!(unescape_bytes(br#"\u00"#).is_none());
+        assert!(unescape_bytes(br#"\u000"#).is_none());
     }
 }
