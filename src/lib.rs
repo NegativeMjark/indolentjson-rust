@@ -12,8 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#![cfg_attr(test, feature(plugin))]
+#![cfg_attr(test, plugin(quickcheck_macros))]
+
 pub mod compact;
 pub mod readhex;
 pub mod parse;
 pub mod validate;
 pub mod strings;
+
+#[cfg(test)]
+extern crate quickcheck;

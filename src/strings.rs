@@ -2,99 +2,118 @@ use std::borrow::Cow;
 
 
 pub fn unescape_bytes<'a>(input: &'a [u8]) -> Option<Cow<'a, [u8]>> {
-    let mut output = Cow::Borrowed(input);
-    let mut iter = input.iter().enumerate();
-    loop {
-        let (idx, c) = match iter.next() {
-            None => break,
-            Some((idx, value)) => (idx, *value),
-        };
-        if c == b'\\' {
-            let vec = into_buf(idx, &mut output);
+    if let Some(pos) = input.iter().position(|c| *c == b'\\') {
+        let mut output = Vec::with_capacity(input.len() * 2);
+        output.extend_from_slice(&input[..pos]);
 
-            let escaped = match iter.next() {
-                None => return None,
-                Some((_, value)) => *value,
+        let mut iter = input.iter().skip(pos);
+        loop {
+            let c = match iter.next() {
+                Some(value) => *value,
+                None => break,
             };
-            match escaped {
-                b'"' | b'\\' => vec.push(escaped),
-                b'b' => vec.push(0x08),
-                b'f' => vec.push(0x0C),
-                b'n' => vec.push(0x0A),
-                b'r' => vec.push(0x0D),
-                b't' => vec.push(0x09),
-                b'u' => {
-                    // Skip the first two digits since they are zero.
-                    if iter.next() == None || iter.next() == None {
-                        return None
-                    }
-                    let h2 = match iter.next() {
-                        None => return None,
-                        Some((_, value)) => *value,
-                    };
-                    let h3 = match iter.next() {
-                        None => return None,
-                        Some((_, value)) => *value,
-                    };
-                    let value = ((h2 - b'0') << 4) + ((h3 - b'0') & 0x1F);
-                    if h3 > b'9' {
-                        vec.push(value - 7);
-                    } else {
-                        vec.push(value);
-                    }
-                },
-                _ => return None,
+            if c == b'\\' {
+                let escaped = match iter.next() {
+                    Some(value) => *value,
+                    None => return None,
+                };
+                match escaped {
+                    b'"' | b'\\' => output.push(escaped),
+                    b'b' => output.push(0x08),
+                    b'f' => output.push(0x0C),
+                    b'n' => output.push(0x0A),
+                    b'r' => output.push(0x0D),
+                    b't' => output.push(0x09),
+                    b'u' => {
+                        // Skip the first two digits since they are zero.
+                        if iter.next() == None || iter.next() == None {
+                            return None
+                        }
+                        let h2 = match iter.next() {
+                            Some(value) => *value,
+                            None => return None,
+                        };
+                        let h3 = match iter.next() {
+                            Some(value) => *value,
+                            None => return None,
+                        };
+                        let value = ((h2 - b'0') << 4) + ((h3 - b'0') & 0x1F);
+                        if h3 > b'9' {
+                            output.push(value - 7);
+                        } else {
+                            output.push(value);
+                        }
+                    },
+                    _ => return None,
+                }
+            } else {
+                output.push(c);
             }
         }
-    }
 
-    Some(output)
+        Some(Cow::Owned(output))
+    } else {
+        Some(Cow::Borrowed(input))
+    }
 }
 
 const HEX : [u8 ; 16] = *b"0123456789ABCDEF";
 
 pub fn escape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
-    let mut output = Cow::Borrowed(input);
-    for (i, c) in input.iter().enumerate() {
-        if *c < b' ' {
-            let vec = into_buf(i, &mut output);
-            vec.push(b'\\');
-            match *c {
-                0x08 => vec.push(b'b'),
-                0x09 => vec.push(b't'),
-                0x0A => vec.push(b'n'),
-                0x0C => vec.push(b'f'),
-                0x0D => vec.push(b'r'),
-                _ => {
-                    vec.extend(b"u00");
-                    vec.push(b'0' + (c >> 4));
-                    vec.push(HEX[(c & 0xF) as usize]);
-                }
-            }
-            continue
-        }
-        if *c == b'\"' || *c == b'\\' {
-            let vec = into_buf(i, &mut output);
-            vec.push(b'\\');
-            vec.push(*c);
-        }
-    }
-    output
-}
+    if let Some(pos) = input.iter().position(|c| *c < b' ' || *c == b'\"' || *c == b'\\') {
+        let mut output = Vec::with_capacity(input.len() * 2);
+        output.extend_from_slice(&input[..pos]);
 
-fn into_buf<'a, 'b>(idx: usize, cow: &'b mut Cow<'a, [u8]>) -> &'b mut Vec<u8> {
-    if let Cow::Borrowed(input) = *cow {
-        let mut vec = Vec::with_capacity(input.len() * 2);
-        vec.extend(&input[..idx]);
-        *cow = Cow::Owned(vec);
+        for c in input.iter().skip(pos) {
+            if *c < b' ' {
+                output.push(b'\\');
+                match *c {
+                    0x08 => output.push(b'b'),
+                    0x09 => output.push(b't'),
+                    0x0A => output.push(b'n'),
+                    0x0C => output.push(b'f'),
+                    0x0D => output.push(b'r'),
+                    _ => {
+                        output.extend(b"u00");
+                        output.push(b'0' + (c >> 4));
+                        output.push(HEX[(c & 0xF) as usize]);
+                    }
+                }
+                continue
+            }
+            if *c == b'\"' || *c == b'\\' {
+                output.push(b'\\');
+            }
+            output.push(*c);
+        }
+        Cow::Owned(output)
+    } else {
+        Cow::Borrowed(input)
     }
-    cow.to_mut()
 }
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quickcheck::TestResult;
+
+    #[quickcheck]
+    fn escape_unescape(xs: Vec<u8>) -> bool {
+        &xs[..] == unescape_bytes(&escape_bytes(&xs)).unwrap().as_ref()
+    }
+
+    #[quickcheck]
+    fn unescape_escape(xs: Vec<u8>) -> TestResult {
+        if let Some(v1) = unescape_bytes(&xs) {
+            let v2 = escape_bytes(&v1);
+            if let Some(v3) = unescape_bytes(&v2) {
+                let v4 = escape_bytes(&v3);
+                return TestResult::from_bool(v4.as_ref() == &v2[..]);
+            }
+        }
+        return TestResult::discard()
+    }
 
     #[test]
     fn escape_control_characters() {
@@ -120,6 +139,18 @@ mod tests {
             &br#"\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F"#[..],
             &escape_bytes(
                 b"\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"
+            )[..]
+        );
+        assert_eq!(
+            &br#"\u0000 "#[..],
+            &escape_bytes(
+                b"\x00 "
+            )[..]
+        );
+        assert_eq!(
+            &br#" \u0000"#[..],
+            &escape_bytes(
+                b" \x00"
             )[..]
         );
     }
@@ -148,6 +179,18 @@ mod tests {
             &b"\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"[..],
             &unescape_bytes(
                 br#"\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F"#,
+            ).unwrap()[..]
+        );
+        assert_eq!(
+            &b"\x00 "[..],
+            &unescape_bytes(
+                br#"\u0000 "#,
+            ).unwrap()[..]
+        );
+        assert_eq!(
+            &b" \x00"[..],
+            &unescape_bytes(
+                br#" \u0000"#,
             ).unwrap()[..]
         );
     }
