@@ -93,8 +93,8 @@ pub fn escape_bytes<'a>(input: &'a [u8]) -> Cow<'a, [u8]> {
 }
 
 
-#[cfg(test)]
-mod tests {
+#[cfg(all(feature = "quickcheck_test", test))]
+mod quickcheck_test {
     use super::*;
     use quickcheck::TestResult;
 
@@ -114,6 +114,11 @@ mod tests {
         }
         return TestResult::discard()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     #[test]
     fn escape_control_characters() {

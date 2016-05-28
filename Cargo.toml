@@ -3,6 +3,9 @@ name = "indolentjson"
 version = "0.1.0"
 authors = ["Mark Haines <mjark@negativecurvature.net>"]
 
-[dev-dependencies]
-quickcheck = "0.2"
-quickcheck_macros = "0.2"
+[dependencies]
+quickcheck = {version = "0.2", optional = true}
+quickcheck_macros = {version = "0.2", optional = true}
+
+[features]
+quickcheck_test = ["quickcheck", "quickcheck_macros"]  # Enables testing with quickcheck
